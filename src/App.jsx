@@ -24,7 +24,7 @@ import PlacementRecords from "./components/portal/PlacementRecords.jsx";
 import GraphBackground from "./components/GraphBackground.jsx";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://ssca-backend.onrender.com/api";
+  "https://ssca-backend.onrender.com/api";
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", roles: ["admin", "teacher", "student"] },
   { key: "students", label: "Student Profiles", roles: ["admin", "teacher", "student"] },
