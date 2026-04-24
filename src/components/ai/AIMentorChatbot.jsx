@@ -8,7 +8,18 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [answerToQuestion, setAnswerToQuestion] = useState("");
   const [mode, setMode] = useState("chat"); // chat or practice
+  const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
   const messagesEndRef = useRef(null);
+  
+  const PREDEFINED_QUESTIONS = [
+    "How can I improve my placement readiness?",
+    "What are the top skills for CSE students?",
+    "How do I prepare for a mock interview?",
+    "Tell me about recent placement trends.",
+    "How can I build a better resume?"
+  ];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -21,6 +32,39 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
     setLoading(true);
+
+    // Predefined Responses for Quick Access Questions
+    const predefinedAnswers = {
+      "How can I improve my placement readiness?": 
+        "To improve your placement readiness, I suggest following these steps:\n\n1. **Consistency in Coding**: Solve at least 2-3 problems on LeetCode or CodeChef daily to sharpen your DSA skills.\n2. **Project Excellence**: Build at least two end-to-end projects and host them on GitHub with proper documentation.\n3. **Mock Drills**: Participate in weekly mock interviews to improve your communication and technical explanation skills.\n4. **Academics**: Keep your CGPA above 7.5-8.0 to stay eligible for top-tier companies.",
+      
+      "What are the top skills for CSE students?":
+        "The current industry trends suggest these top skills for CSE students:\n\n1. **Core DSA**: Strong command over Java, C++, or Python with deep knowledge of Data Structures and Algorithms.\n2. **Full-Stack Development**: Proficiency in the MERN stack (MongoDB, Express, React, Node.js) or Next.js.\n3. **AI/ML & Data Science**: Basic understanding of machine learning models and data analysis tools.\n4. **Cloud & DevOps**: Knowledge of AWS/Azure and version control using Git/GitHub.",
+      
+      "How do I prepare for a mock interview?":
+        "Preparation is key! Here are 4 suggestions for your mock interviews:\n\n1. **Fundamental Review**: Brush up on Core CS subjects like Operating Systems, DBMS, and Computer Networks.\n2. **Behavioral Questions**: Prepare your 'Tell me about yourself' and 'Project Challenges' using the STAR method.\n3. **Live Coding**: Practice writing code on a notepad or whiteboard while explaining your logic out loud.\n4. **Feedback Loop**: Record your session or ask a mentor for feedback on your body language and tone.",
+      
+      "Tell me about recent placement trends.":
+        "The placement landscape is evolving. Here are the latest trends:\n\n1. **Skill-Based Hiring**: Companies are moving away from just looking at degrees and focusing on verified skills and certifications.\n2. **System Design**: Even for freshers, basic knowledge of how scalable systems work is becoming a common interview topic.\n3. **Remote/Hybrid Culture**: Many companies now test your ability to collaborate effectively in a distributed environment.\n4. **Niche Tech**: High demand for students with expertise in Cybersecurity, Blockchain, and Data Engineering.",
+      
+      "How can I build a better resume?":
+        "Your resume is your first impression. Follow these 4 tips:\n\n1. **Quantifiable Results**: Use numbers (e.g., 'Reduced API latency by 30%') instead of just listing tasks.\n2. **ATS Optimization**: Use industry-standard keywords so your resume clears automated screening bots.\n3. **Project Links**: Include live URLs and GitHub links so recruiters can actually see your work.\n4. **Clean Layout**: Stick to a single-page, professional template like the Harvard or Deedy style."
+    };
+
+    if (predefinedAnswers[message]) {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: predefinedAnswers[message],
+            timestamp: new Date(),
+          },
+        ]);
+        setLoading(false);
+      }, 600);
+      return;
+    }
 
     try {
       const response = await fetch(`${apiBaseUrl}/ai/chat`, {
@@ -169,15 +213,59 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
     setMessages([]);
   };
 
+  // Draggable logic
+  const handleMouseDown = (e) => {
+    // Only drag if clicking the button or the header
+    if (e.target.closest('.chatbot-button') || e.target.closest('.chatbot-header')) {
+      setIsDragging(true);
+      dragStartPos.current = {
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      };
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      
+      const newX = e.clientX - dragStartPos.current.x;
+      const newY = e.clientY - dragStartPos.current.y;
+      
+      // Keep within bounds
+      const boundedX = Math.max(0, Math.min(newX, window.innerWidth - 60));
+      const boundedY = Math.max(0, Math.min(newY, window.innerHeight - 60));
+      
+      setPosition({ x: boundedX, y: boundedY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   return (
-    <div className="chatbot-container">
+    <div 
+      className="chatbot-container" 
+      style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      onMouseDown={handleMouseDown}
+    >
       <style>{`
         .chatbot-container {
           position: fixed;
-          bottom: 20px;
-          right: 20px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           z-index: 9999;
+          user-select: none;
         }
 
         .chatbot-button {
@@ -235,6 +323,7 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
           justify-content: space-between;
           align-items: center;
           border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+          cursor: move;
         }
 
         .chatbot-title {
@@ -438,6 +527,32 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
         .back-button:hover {
           background: #e5e7eb;
         }
+        .cert-item strong { font-size: 13px; display: block; }
+
+        .quick-questions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .question-chip {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          color: #1f6feb;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .question-chip:hover {
+          background: #1f6feb;
+          color: white;
+          border-color: #1f6feb;
+        }
       `}</style>
 
       {isOpen && (
@@ -463,6 +578,17 @@ const AIMentorChatbot = ({ studentId, token, apiBaseUrl }) => {
                   <br />• Career guidance
                   <br />• Skill development tips
                   <br />• Placement preparation advice
+                  <div className="quick-questions">
+                    {PREDEFINED_QUESTIONS.map((q, i) => (
+                      <button 
+                        key={i} 
+                        className="question-chip"
+                        onClick={() => sendMessage(q)}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

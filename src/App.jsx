@@ -22,9 +22,12 @@ import Messages from "./components/portal/Messages.jsx";
 import Reviews from "./components/portal/Reviews.jsx";
 import PlacementRecords from "./components/portal/PlacementRecords.jsx";
 import GraphBackground from "./components/GraphBackground.jsx";
+import ResumeBuilder from "./components/portal/ResumeBuilder.jsx";
+import CompanyAnalysis from "./components/portal/CompanyAnalysis.jsx";
+import Notifications from "./components/portal/Notifications.jsx";
 
 const API_BASE_URL =
-  "https://ssca-backend.onrender.com/api";
+  import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", roles: ["admin", "teacher", "student"] },
   { key: "students", label: "Student Profiles", roles: ["admin", "teacher", "student"] },
@@ -34,6 +37,9 @@ const NAV_ITEMS = [
   { key: "reviews", label: "Alumni Reviews", roles: ["student", "admin"] },
   { key: "messages", label: "Leadership Messages", roles: ["student", "teacher"] },
   { key: "contacts", label: "Campus Directory", roles: ["admin", "teacher", "student"] },
+  { key: "resume-builder", label: "Resume Builder", roles: ["student"] },
+  { key: "notifications", label: "Recruiter Updates", roles: ["student"] },
+  { key: "company-stats", label: "Company Analysis", roles: ["admin"] },
   { key: "teachers", label: "Manage Teachers", roles: ["admin"] },
 ];
 const CHART_COLORS = [
@@ -213,6 +219,12 @@ const App = () => {
           (student) => student.id === selectedStudent.id,
         );
         setSelectedStudent(refreshed || null);
+      } else if (user.role === "student") {
+        // Automatically select the logged-in student's profile
+        const myProfile = (studentsResponse.students || []).find(
+          (s) => s.id === user.id
+        );
+        if (myProfile) setSelectedStudent(myProfile);
       }
     } catch (loadError) {
       setError(loadError.message);
@@ -663,6 +675,32 @@ const App = () => {
               {loading ? (
                 <span className="loading-badge">Syncing...</span>
               ) : null}
+              {user.role === "student" && (
+                <button 
+                  className="ghost-button" 
+                  style={{ position: 'relative', padding: '8px 12px', borderRadius: '50%' }}
+                  onClick={() => setActiveView("notifications")}
+                  title="Recruiter Notifications"
+                >
+                  🔔
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '10px',
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    border: '2px solid white'
+                  }}>3</span>
+                </button>
+              )}
             </div>
           </header>
 
@@ -1028,6 +1066,9 @@ const App = () => {
           {activeView === "messages" ? <Messages /> : null}
           {activeView === "reviews" ? <Reviews /> : null}
           {activeView === "placement-records" ? <PlacementRecords /> : null}
+          {activeView === "resume-builder" ? <ResumeBuilder student={selectedStudent} /> : null}
+          {activeView === "company-stats" ? <CompanyAnalysis /> : null}
+          {activeView === "notifications" ? <Notifications /> : null}
 
           {activeView === "teachers" && user.role === "admin" ? (
             <section className="split-layout">
